@@ -25,6 +25,7 @@ def get_standard_context(request):
     context = {
         'MEDIA_URL' : settings.MEDIA_URL,
         'user_authenticated': request.user.is_authenticated,
+        'is_manager': is_manager(request.user)
     }
     return context
 def get_user_cart_order(user):
@@ -108,28 +109,52 @@ def whiteboard(request):
 ### DEBUG
 def get_history(request):
     if request.method == 'GET':
-        try:
-            # Query all OrderHistory entries
-            order_history = OrderHistory.objects.all()
+        if is_manager(request.user):
+            try:
+                # Query all OrderHistory entries
+                order_history = OrderHistory.objects.all()
 
-            # Manually serialize data
-            data = [
-                {
-                    "order_id": entry.order_id,
-                    "total_price": entry.total_price,
-                    "items": entry.items,
-                    "customer": entry.customer,
-                    "date_completed": entry.date_completed.strftime('%Y-%m-%d %H:%M:%S'),
-                    "status": entry.status,
-                }
-                for entry in order_history
-            ]
-            print(data)
-            # Return as a JSON response
-            return JsonResponse(data, safe=False, status=200)
+                # Manually serialize data
+                data = [
+                    {
+                        "order_id": entry.order_id,
+                        "total_price": entry.total_price,
+                        "items": entry.items,
+                        "customer": entry.customer,
+                        "date_completed": entry.date_completed.strftime('%Y-%m-%d %H:%M:%S'),
+                        "status": entry.status,
+                    }
+                    for entry in order_history
+                ]
+                print(data)
+                # Return as a JSON response
+                return JsonResponse(data, safe=False, status=200)
 
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            except Exception as e:
+                return JsonResponse({"error": str(e)}, status=500)
+        else:
+            try:
+                # Query all OrderHistory entries
+                order_history = OrderHistory.objects.all(user=request.user)
+
+                # Manually serialize data
+                data = [
+                    {
+                        "order_id": entry.order_id,
+                        "total_price": entry.total_price,
+                        "items": entry.items,
+                        "customer": entry.customer,
+                        "date_completed": entry.date_completed.strftime('%Y-%m-%d %H:%M:%S'),
+                        "status": entry.status,
+                    }
+                    for entry in order_history
+                ]
+                print(data)
+                # Return as a JSON response
+                return JsonResponse(data, safe=False, status=200)
+
+            except Exception as e:
+                return JsonResponse({"error": str(e)}, status=500)
 
 @login_required
 def get_cart(request):
@@ -263,12 +288,22 @@ def update_order(request, order_id):
                     return JsonResponse({'success': False, 'error': 'You do not have permission to update this status'}, status=403)
                 order.status = data['status']
                 if data['status'] in [Orders.REJECTED, Orders.FINISHED, Orders.CANCELLED]:
-                    #write to order history
+                                    #write to order history
+                    status_mapping = {
+                        Orders.REJECTED: "REJECTED",
+                        Orders.FINISHED: "FINISHED",
+                        Orders.CANCELLED: "CANCELLED"
+                    }
+
+                    # Get the FinalStatus
+                    FinalStatus = status_mapping.get(data['status'], "Unknown")  # Default to "Unknown" if no match is found
+
                     OrderHistory.objects.create(
                         order_id=order.id,
                         total_price=get_order_total(order),
-                        items=generate_order_items_summary(order.id),  # Example serialization
-                        status="completed"
+                        items=generate_order_items_summary(order.id),
+                        customer=order.customer.username,
+                        status=FinalStatus
                         )
                     order.delete()
                     return JsonResponse({'success': True, 'message': 'Order completed.'}, status=200)
@@ -744,7 +779,7 @@ def register(request):
                 messages.success(request, 'Your account has been created successfully!')
                 return redirect('login')  # Redirect to login or any other page
             else:
-                messages.error(request, 'Passwords do not match.')
+                messages.error(request, 'Please fix the errors below.')
     else:
         user_form = UserRegistrationForm()
         profile_form = UserProfileForm()

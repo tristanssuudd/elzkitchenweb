@@ -1,3 +1,116 @@
+const categoryDict = {};
+const itemsPerPage = 10;
+function fetchProducts(page) {
+    const sortBy = document.getElementById('sort_by').value;
+    const ascending = document.getElementById('ascending').checked;
+    const categorySelector = document.getElementById('product_category_select');
+    const category = categorySelector.value === 'semua' ? '' : categorySelector.value;
+
+    fetch('/products/query', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') // Include CSRF token if needed
+        },
+        body: JSON.stringify({
+            sort_by: sortBy,
+            ascending: ascending.toString(),
+            category: category
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data && Array.isArray(data)) {
+            displayProducts(data, page);
+            setupPagination(data.length, page);
+        } else {
+            console.error('Invalid data received:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching products:', error);
+    });
+}
+
+
+function displayProducts(products, page) {
+    const productList = document.getElementById('product-list');
+    productList.innerHTML = ''; // Clear existing rows
+
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+
+    products.slice(start, end).forEach(product => {
+        const productItem = document.createElement('div');
+        productItem.classList.add('product-item');
+        compiledProductInfo = JSON.stringify(product);
+        productItem.innerHTML = `
+            <div class="product-image">
+                <img class="productImage" src="${product.image_url}" alt="Image">
+            </div>
+            <div class="product-content">
+                <h2>${product.is_Available ? product.name : '[HABIS] ' + product.name}</h2>
+                <p>Category: ${product.category}</p>
+                <b><p>Rp. ${product.price.toLocaleString()}</p></b>
+            </div>
+            <div class="product-interact">
+                ${product.is_Available ? `
+                    <button class="add-to-cart" data-id="${product.id}" data-quantity="1" onclick="add_to_cartButtonOnClick(event)">Tambahkan ke Keranjang</button>
+                ` : `
+                    <button class="add-to-cart" id="na-add-to-cart" onclick="alert('This product is unavailable')">Tambahkan ke Keranjang</button>
+                `}
+            </div>
+        `;
+        productList.appendChild(productItem);
+    });
+}
+function setupPagination(totalProducts, currentPage) {
+    const paginationControls = document.getElementById('pagination-controls');
+    paginationControls.innerHTML = ''; // Clear previous pagination controls
+
+    const totalPages = Math.ceil(totalProducts / itemsPerPage); // Assuming 10 products per page
+    const prevPage = currentPage > 1 ? currentPage - 1 : 1;
+    const nextPage = currentPage < totalPages ? currentPage + 1 : totalPages;
+
+    paginationControls.innerHTML = `
+        <button onclick="fetchProducts(${prevPage})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button onclick="fetchProducts(${nextPage})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+    `;
+}
+
+// Fetch categories and populate the category dropdown
+function populateCategories() {
+    fetch('/products/categories', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (Array.isArray(data)) {
+            const categorySelect = document.getElementById('product_category_select');
+            categorySelect.innerHTML = '<option value="semua">Semua</option>'; // Reset options
+
+            // Populate category dropdown with available categories
+            data.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.category;
+                categorySelect.appendChild(option);
+            });
+        } else {
+            console.error('Invalid data received:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching categories:', error);
+    });
+}
+
+
+
 function add_to_cartButtonOnClick (event) {
     console.log("Hello");
     const button = event.target;
@@ -190,6 +303,7 @@ function toggleMenu(event) {
     // Toggle menu visibility
     menu.classList.toggle('hidden');
 }
+/*
 function createMenu() {
     const menu = document.createElement('div');
     menu.id = 'actionMenus';
@@ -215,8 +329,13 @@ function createMenu() {
 
     return menu;
 }
+*/
 function init(){
+    populateCategories();
     fetchCart();
+    fetchProducts(1);
+
+    /*
     document.addEventListener('click', (event) => {
         const menu = document.getElementById('actionMenus');
         console.log(menu.classList.contains('hidden'));
@@ -224,6 +343,7 @@ function init(){
             menu.remove();
         }
     });
+    */
 }
 
 window.onload = init();

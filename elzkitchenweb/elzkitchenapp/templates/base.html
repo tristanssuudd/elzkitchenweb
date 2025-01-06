@@ -28,6 +28,16 @@
             <div class="general-links">
                 <a href="/">BERANDA</a>
                 <a href="/info">TENTANG</a>
+                
+                {% if is_manager %}
+                    <a href="/manager">PESANAN</a>
+                    <a href="/products/manager">PRODUK</a>
+                {% else %}
+
+                {% endif %}
+                {% if user_authenticated %}
+                <a href="/">Kontak Bu Elz!</a>
+                {% endif %}
             </div>
             
             

@@ -282,14 +282,48 @@ p {
     padding: 5px 10px;
 }
 .generic-form {
-    display:flex;
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch; /* Ensure fields align with the container width */
+    max-width: 800px; /* Set a max width for better readability */
+    margin: 0 auto; /* Center the form horizontally */
+    padding: 20px;
+    border: 1px solid #ddd; /* Add a subtle border */
+    border-radius: 8px; /* Rounded corners for the form */
+    background-color: #f9f9f9;
+    
+}
 
-}
-.generic-form p{
+.generic-form label {
+    font-size: 14px;
+    font-weight: 600;
     margin-bottom: 5px;
+    color: #333;
 }
+
+.generic-form input, 
+.generic-form select, 
+.generic-form textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px; /* Rounded corners for fields */
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.generic-form input:focus, 
+.generic-form select:focus, 
+.generic-form textarea:focus {
+    border-color: #007BFF; /* Highlight the field on focus */
+    outline: none;
+    box-shadow: 0 0 4px rgba(0, 123, 255, 0.5); /* Add focus effect */
+}
+
+
+
+
 
 .form-overlay {
     position: fixed;
@@ -322,6 +356,9 @@ p {
     color: #fff; 
     cursor: pointer; 
     box-sizing: border-box;
+}
+.generic-ok-button:hover {
+    background-color: #47c6cf; /* Darken button on hover */
 }
 .generic-reject-button{
     display: inline-block; 

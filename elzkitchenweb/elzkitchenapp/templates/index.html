@@ -7,36 +7,48 @@
 
 {% endblock %}
 {% block content %}
-<div class="container">
-    
-    <div id="product-list">
-        {% if products %}
-            {% for product in products %}
-                <div class="product-item">
-                    <div class="product-image">
-                        <img class="productImage" src="{{ product.product_image.url }}" alt="Image">
-                    </div>
-                    <div class="product-content">
-                        
-                        <h2>{{ product.isAvailable|yesno:",[HABIS]" }}{{ product.name }}</h2>
-                        <p>Category: {{ product.category.category }}</p>
-                        <p></p>
-                        <b><p>Rp. {{ product.price|intcomma }}</p></b>
-                    </div>
-                    <div class="product-interact">
-                        {% if user_authenticated %}
-                        <button class="add-to-cart"  data-id="{{ product.id }}" data-quantity="1" onclick="add_to_cartButtonOnClick(event)">Tambahkan ke Keranjang</button>
-                        {% else %}
-                        <button class="add-to-cart" id="na-add-to-cart" onclick="alert('You must be logged in to add items to the cart')">Tambahkan ke Keranjang</button>
-                        {% endif %}
-                    </div>
 
-                </div>
-            {% endfor %}
-        {% else %}
-            <p>No products available</p>
-        {% endif %}
+
+<div class="container">
+
+    <div class="home-splash-container">
+        <h1 id="home-splash-message">
+            Selamat datang di El'z Kitchen!
+        </h1>
+        <p id="home-splash-text">
+            Ayo pilih produk kami dibawah ini!
+        </p>
+
     </div>
+    <div class="pm_controls">
+        <div class="pm_controls_child">
+            <button class='generic-ok-button' onclick="fetchProducts(1)">Terapkan kriteria</button>
+        </div>
+        <div>
+            <label for="product_category_select">Kategori</label>
+            <select id="product_category_select">
+                <option value="semua">Semua</option> <!-- Categories will be added here -->
+            </select>
+        </div>
+        <div class="pm_controls_child">
+            <label for="sort_by">Sort By:</label>
+            <select id="sort_by">
+                <option value="price">Price</option>
+            </select>
+        </div>
+        
+        <div class="pm_controls_child">
+            <label for="ascending">
+                <input type="checkbox" id="ascending" checked> Ascending
+            </label>
+        </div>
+        
+    </div>
+    <div id="product-list">
+        
+    </div>
+
+    <div id="pagination-controls"></div>
 </div>
     <div class="shopping-cart">
         <div class="shopping-cart-title">

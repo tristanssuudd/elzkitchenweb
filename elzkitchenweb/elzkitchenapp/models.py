@@ -93,3 +93,7 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f'{self.user.username} Profile'
+class kitchenInfo(models.Model):
+    kitchenContact = models.CharField(max_length=15, blank=True, null=True)
+    kitchenOpen = models.BooleanField()
+
