@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block header %}
+
+
+
+{% endblock %}
+{% block content %}
+    <div class="container">
+        <h1>Your shopping cart:</h1>
+        <div class="checkout-display">
+            <div class="checkout-items">
+                <ul>
+                    {% for item in cart %}
+                    <li>
+                        <p>{{item.product_name}}</p>
+                        <p>Jumlah: {{item.quantity}}</p>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <form id="final-checkout-form" method="POST">
+            
+                <div id="checkout_date_field">
+                    <label for="delivery_date">Tanggal Pengiriman:</label>
+                    <input type="date" id="delivery_date" name="delivery_date" required>
+                    <input type="time" id="delivery_time" name="delivery_time" required>
+                </div>
+            
+                <input class="generic-ok-button" type="submit" data-orderid='{{order_id}}' onclick="submitDeliveryForm(event)" value="Pesan">
+            </form>
+        </div>
+
+
+    </div>   
+{% endblock %}
+{% block custom_js %}
+    <script src="{% static 'js/checkout.js' %}"></script>
+{% endblock %}

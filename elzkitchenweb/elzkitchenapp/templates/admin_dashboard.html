@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block header %}
+
+{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Order Manager</h1>
+    <br>
+    <label for="cars">Urutan berdasarkan: </label>
+    <select name="sort_by" id="sort_by">
+        <option value="date_delivery">Tanggal Pengiriman</option>
+        <option value="status">Status</option>
+        <option value="date_ordered">Tanggal dipesan</option>
+      </select>
+    <div class="orders-manager" id="orders-manager-loader">
+    
+
+    </div>
+    <button id="load-more" style="display: none;">Load More</button>
+</div>
+{% endblock %}
+{% block custom_js %}
+    <script src="{% static 'js/manager.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,32 @@
+from django.urls import path
+from . import views
+from django.contrib.auth import views as auth_views
+urlpatterns = [
+    path('', views.index, name='index'),
+    path('login/', views.CustomLoginView.as_view(), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('register/', views.register, name='register'),
+    path('user/', views.user_profile, name='user_profile'),
+    path('manager/', views.manager, name='manager'),
+    path('users/get_contact/<int:order_id>', views.get_user_phone_number, name='get_user_phone_number'),
+    path('products/manager', views.product_manager, name='product_manager'),
+    path('products/query', views.get_products, name='get_products'),
+    path('products/<int:product_id>', views.get_product, name='get_product'),
+    path('products/categories', views.fetch_categories, name='fetch_categories'),
+    path('products/create', views.create_product, name='create_product'),
+    path('products/update/<int:product_id>', views.update_product, name='update_product'),
+    path('products/delete/<int:product_id>', views.delete_product, name='update_product'),
+    path('orders/customer/add_to_cart', views.add_to_cart, name='add_to_cart'),
+    path('orders/customer/delete_from_cart', views.delete_from_cart, name='delete_from_cart'),
+    path('orders/customer/checkout/', views.checkout, name='checkout'),
+    path('orders/customer/upload_receipt', views.upload_receipt, name='upload_receipt'),
+    path('orders/receipt/<int:order_id>', views.get_receipt_image, name='get_receipt'),
+    path('orders/query', views.get_orders, name='get_orders'),
+    path('orders/update-order/<int:order_id>', views.update_order, name='update_order'),
+    path('orders/msg/<int:order_id>', views.add_order_message, name='order_message'),
+    path('orders/getmsgs/<int:order_id>', views.get_order_messages, name='get_order_messages'),
+    path('get_cart/', views.get_cart, name='get_cart'),
+    path('upload-receipt/<int:order_id>/', views.upload_receipt, name='upload_receipt'),
+    path('whiteboard/', views.whiteboard, name='whiteboard'),
+    path('get_history/', views.get_history, name='get_history'),
+]

@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}My Site{% endblock %}</title>
+
+
+    <link rel="stylesheet" href="{% static 'styles/basic_styles.css' %}">
+
+    <!-- Custom CSS Block -->
+    {% block custom_css %}
+    <!-- Other templates can add their own CSS files here -->
+    {% endblock %}
+</head>
+<body>
+    <div class="banner">
+        <img src="{{MEDIA_URL}}/header_logo.jpg" alt="Promotional Banner" class="banner-image">
+        <h1 class="banner-title">EL'Z KITCHEN</h1>
+        
+    </div>
+    <!-- Header -->
+    <header>
+        <nav class="nav-links">
+            <div class="general-links">
+                <a href="/">BERANDA</a>
+                <a href="/info">TENTANG</a>
+            </div>
+            
+            
+            <div class="auth-links">
+            {% if user_authenticated %}
+            <a href="/user">PROFIL ANDA</a>
+                <a href="/logout/">LOGOUT</a>
+            {% else %}
+                <a href="/login/">LOGIN</a>
+                <a href="/register/">DAFTAR</a>
+            {% endif %}
+            </div>
+        </nav>
+
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}
+        <!-- Default main content -->
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        {% block footer %}
+        <!-- Default footer content -->
+        {% endblock %}
+    </footer>
+
+    <!-- Common JavaScript -->
+    <script src="{% static 'js/common.js' %}"></script>
+
+    <!-- Custom JavaScript Block -->
+    {% block custom_js %}
+    <!-- Other templates can add their own JavaScript files here -->
+    {% endblock %}
+</body>
+</html>

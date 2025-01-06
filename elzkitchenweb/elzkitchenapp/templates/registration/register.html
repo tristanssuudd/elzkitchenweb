@@ -1,0 +1,31 @@
+
+<!-- registration/login.html -->
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block header %}
+
+{% endblock %}
+{% block content %}
+<div class="container">
+    <h2>Register</h2>
+    <p>Perhatian!: Mohon masukkan nomor telefon dengan Whatsapp dan awali dengan kode negara. (Contoh: 621234567890)</p>
+    <form method="POST" enctype="multipart/form-data" class="generic-form">
+        {% csrf_token %}
+        {{ user_form.as_p }}  <!-- Renders the User form -->
+        {{ profile_form.as_p }}  <!-- Renders the UserProfile form -->
+        <button type="submit">Register</button>
+    </form>
+
+    {% if messages %}
+        <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+</div>
+{% endblock %}
+{% block custom_js %}
+
+{% endblock %}

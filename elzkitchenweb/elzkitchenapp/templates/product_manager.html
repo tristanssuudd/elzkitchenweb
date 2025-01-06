@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block header %}
+
+
+
+{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Product Table</h1>
+    <div class="pm_actions">
+        <div class="pm_controls">
+
+            <div class="pm_controls_child">
+                <button class='generic-ok-button' onclick="fetchProducts(1)">Terapkan kriteria</button>
+            </div>
+            <div>
+                <label for="product_category_select">Kategori</label>
+                <select id="product_category_select">
+                    <option value="semua">Semua</option>
+                </select>
+            </div>
+            <div class="pm_controls_child">
+                <label for="sort_by">Sort By:</label>
+                <select id="sort_by">
+                    <option value="price">Price</option>
+                </select>
+            </div>
+            
+            <div class="pm_controls_child">
+                <label for="ascending">
+                    <input type="checkbox" id="ascending" checked> Ascending
+                </label>
+            </div>
+        </div>
+        <div class="pm_create_product">
+            <button id="open_create_product_button" class="generic-ok-button" onclick="toggleCreateForm()">Buat Produk Baru</button>
+    
+            <div id="createProductContainer" class="form-overlay" style="display: none;">
+                <div class="form-wrapper">
+                    <h2>Buat Produk Baru</h2>
+                    <form id="createProductForm" enctype="multipart/form-data">
+                        <!-- Product Name -->
+                        <label for="name">Nama Produk : </label> <br>
+                        <input type="text" id="create-name" name="name" required><br><br>
+        
+                        <!-- Category -->
+                        <label for="category">Kategori :</label> <br>
+                        <select id="create-category-select" name="category" required>
+                            <!-- Categories will be dynamically populated -->
+                        </select><br><br>
+        
+                        <!-- Availability -->
+                        <label for="isAvailable">Tersedia :</label>
+                        <input type="checkbox" id="create-isAvailable" name="isAvailable" value="True"><br><br>
+                        
+                        
+
+                        <!-- Product Price -->
+                        <label for="price">Harga : </label> <br>
+                        <input type="number" step="100" id="create-price" name="price" required><br><br>
+        
+                        <!-- Product Image Upload -->
+                        <label for="image">Gambar : </label> <br>
+                        <input type="file" id="create-image" name="image"><br><br>
+        
+                        <!-- Submit Button -->
+                        <button type="button" class="generic-ok-button" onclick="createProduct()">Buat Produk</button><br><br>
+                        <button type="button" class="generic-reject-button" onclick="toggleCreateForm()">Cancel</button>
+                    </form>
+                </div>
+        </div>
+        <div class="pm_edit_product">
+    
+            <div id="editProductContainer" class="form-overlay" style="display: none;">
+                <div class="form-wrapper">
+                    <h2>Ubah data produk</h2>
+                    <p>Biarkan field yang tidak ingin diganti.</p>
+                    <form id="editProductForm" enctype="multipart/form-data">
+                        <!-- Product Name -->
+                        <label for="name">Nama Produk : </label> <br>
+                        <input type="text" id="edit-name" name="name" required><br><br>
+        
+                        <!-- Category -->
+                        <label for="category">Kategori :</label> <br>
+                        <select id="edit-category-select" name="category" required>
+                            <!-- Categories will be dynamically populated -->
+                        </select><br><br>
+        
+                        <!-- Availability -->
+                        <label for="isAvailable">Tersedia :</label>
+                        <input type="checkbox" id="edit-isAvailable" name="isAvailable" value="True"><br><br>
+
+                        <label for="NAMessage" class="tooltip">Alasan tidak tersedia: <span class="tooltiptext">Pesan ini akan ditampilkan ke pelanggan apabila produk tidak tersedia.</span></label><br>
+                        <input type="text" id="NAMessage" name="NAMessage"><br><br>
+
+                        <!-- Product Price -->
+                        <label for="price">Harga : </label> <br>
+                        <input type="number" step="100" id="edit-price" name="price" required><br><br>
+        
+                        <!-- Product Image Upload -->
+                        <label for="image">Gambar : </label> <br>
+                        <input type="file" id="edit-image" name="image"><br><br>
+        
+                        <!-- Submit Button -->
+                        <button type="button" id='editProductSubmitButton' class="generic-ok-button">Ubah Data Produk</button><br><br>
+                        <button type="button" class="generic-reject-button" onclick="toggleEditForm()">Cancel</button>
+                    </form>
+                </div>
+        </div>
+    </div>
+    
+    <div class="product_manager_display">
+        <table>
+            <thead>
+                <tr>
+                    <th><div class="tooltip">Seleksi<span class="tooltiptext">Seleksi semua produk di halaman ini</span></div><br><input class="product_selector" type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+                    <th>Gambar</th>
+                    <th>Nama</th>
+                    <th>Harga</th>
+                    <th>Ketersediaan</th>
+                    <th>Kategori</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody">
+                <!-- Products will be dynamically inserted here -->
+            </tbody>
+        </table>
+        <div class="pagination" id="pagination">
+            <!-- Pagination buttons will be dynamically inserted here -->
+        </div>
+    </div>
+    
+
+    
+</div>
+{% endblock %}
+{% block custom_js %}
+    <script src="{% static 'js/product_manager.js' %}"></script>
+{% endblock %}

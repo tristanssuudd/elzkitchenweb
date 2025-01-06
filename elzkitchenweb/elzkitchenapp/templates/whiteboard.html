@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block header %}
+
+{% endblock %}
+{% block content %}
+<div class="container">
+    <p id="json-display"></p>
+    <form id="createProductForm" enctype="multipart/form-data">
+        
+        <a href="https://wa.me/628121116063?text=Hello,%20I%20am%20interested%20in%20your%20product." target="_blank">
+            Contact on WhatsApp
+        </a>
+        <!-- Product Name -->
+        <label for="name">Product Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <!-- Category (Assuming it's a foreign key, you may populate this with Django template syntax) -->
+        <label for="category">Category:</label>
+        <select id="category-select" name="category" required>
+            <!-- Example static categories, replace with dynamic categories from your database -->
+        </select><br><br>
+
+        <!-- Availability -->
+        <label for="isAvailable">Is Available:</label>
+        <input type="checkbox" id="isAvailable" name="isAvailable" value="True"><br><br>
+
+        <!-- Product Price -->
+        <label for="price">Price:</label>
+        <input type="number" step="100" id="price" name="price" required><br><br>
+
+        <!-- Product Image Upload -->
+        <label for="image">Product Image:</label>
+        <input type="file" id="image" name="image"><br><br>
+
+        <!-- Submit Button -->
+        <button type="button" onclick="createProduct()">Create Product</button>
+    </form>
+</div>
+{% endblock %}
+{% block custom_js %}
+    <script src="{% static 'js/whiteboard.js' %}"></script>
+{% endblock %}
