@@ -1,5 +1,12 @@
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
 const categoryDict = {};
 const itemsPerPage = 10;
+
+var kitchenIsOpen;
+
 function fetchProducts(page) {
     const sortBy = document.getElementById('sort_by').value;
     const ascending = document.getElementById('ascending').checked;
@@ -10,7 +17,7 @@ function fetchProducts(page) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken') // Include CSRF token if needed
+            'X-CSRFToken': getCSRFToken() // Include CSRF token if needed
         },
         body: JSON.stringify({
             sort_by: sortBy,
@@ -84,7 +91,7 @@ function populateCategories() {
     fetch('/products/categories', {
         method: 'GET',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         }
     })
     .then(response => response.json())
@@ -117,6 +124,8 @@ function add_to_cartButtonOnClick (event) {
     const productId = button.getAttribute('data-id');
     const quantity = button.getAttribute('data-quantity');
     add_to_cart(productId, quantity);
+
+    
 }
 
 function fetchCart() {
@@ -149,11 +158,20 @@ function add_to_cart(productId, quantity) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(body)
     })
     .then(response => {
+
+        if (response.status === 401) {
+            return response.json().then(data => {
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url; // Redirect to login page
+                }
+            });
+        }
+
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
@@ -182,7 +200,7 @@ function delete_from_cart(productId){
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(body)
     })
@@ -330,7 +348,57 @@ function createMenu() {
     return menu;
 }
 */
+// UI Updates:
+// dont show the shopping cart
+// show a fixed text saying the store is closed.
+function getKitchenStatus(){
+
+    const kitchenStatusIndicator = document.getElementById('kitchen-status-indicator');
+
+    fetch('/settings/get_kitchen_status',{
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCSRFToken(),  
+        }
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.kitchen_status !== undefined) {
+            console.log("Kitchen status:", data.kitchen_status ? "Open" : "Closed");
+            kitchenIsOpen = data.kitchen_status
+
+            const checkoutButton = document.getElementById("to-checkout");
+            const splashText = document.getElementById("home-splash-text");
+
+            if (kitchenIsOpen) {
+                checkoutButton.href = "orders/customer/checkout/";
+            } else {
+                splashText.style.color = 'red';
+                splashText.innerHTML = 'Toko sedang tutup.';
+                checkoutButton.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    alert('Toko sedang tutup.');
+                });
+            }
+            
+            
+
+        } else if (data.error) {
+            console.error("Error fetching kitchen status:", data.error);
+        }
+    })
+    .catch(error => {
+        console.error("Network or server error:", error);
+    });
+}
+
+
 function init(){
+    getKitchenStatus();
     populateCategories();
     fetchCart();
     fetchProducts(1);

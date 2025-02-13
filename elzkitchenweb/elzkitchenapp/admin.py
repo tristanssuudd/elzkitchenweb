@@ -7,4 +7,5 @@ admin.site.register(OrderItem)
 admin.site.register(ProductCategory)
 admin.site.register(UserProfile)
 admin.site.register(OrderHistory)
+admin.site.register(kitchenInfo)
 # Register your models here.

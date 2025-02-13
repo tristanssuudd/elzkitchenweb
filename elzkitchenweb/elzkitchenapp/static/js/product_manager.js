@@ -1,19 +1,8 @@
 const categoryDict = {};
 const itemsPerPage = 5;
 
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 }
 function formatStringNumberWithCommas(numberString) {
     const number = parseFloat(numberString); // Convert the string to a number
@@ -73,7 +62,7 @@ function createProduct() {
     fetch('/products/create', {
         method: 'POST',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: formData
     })
@@ -81,7 +70,9 @@ function createProduct() {
     .then(data => {
         if (data) {
             console.log(data);
-            toggleCreateForm(); // Close the form on successful creation
+            location.reload();
+            toggleCreateForm();
+            
         } else {
             console.error('Error creating product.');
         }
@@ -97,7 +88,7 @@ function editProduct(pid){
     fetch(`/products/update/${pid}`, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: EditformData
     })
@@ -123,7 +114,7 @@ function deleteProduct(pid){
     fetch(`/products/delete/${pid}`, {
         method: 'DELETE',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         }
     })
     .then(response => response.json())
@@ -168,7 +159,7 @@ function populateCategories() {
     fetch('/products/categories', {
         method: 'GET',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         }
     })
     .then(response => response.json())
@@ -217,7 +208,7 @@ function fetchProducts(page) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken') // Include CSRF token if needed
+            'X-CSRFToken': getCSRFToken() // Include CSRF token if needed
         },
         body: JSON.stringify({
             sort_by: sortBy,

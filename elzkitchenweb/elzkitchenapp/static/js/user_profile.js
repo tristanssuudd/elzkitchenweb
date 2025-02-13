@@ -1,3 +1,14 @@
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+function formatStringNumberWithCommas(numberString) {
+    const number = parseFloat(numberString); // Convert the string to a number
+    if (isNaN(number)) {
+        throw new Error("Invalid number string"); // Handle invalid input
+    }
+    return number.toLocaleString('en-US');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchOrdersAndDisplay();
 });
@@ -7,7 +18,7 @@ function fetchOrdersAndDisplay() {
     fetch('/orders/query', {
         method: 'POST',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken') // CSRF protection if needed
+            'X-CSRFToken': getCSRFToken() // CSRF protection if needed
         }
     })
     .then(response => response.json())
@@ -49,7 +60,7 @@ function displayOrders(orders) {
         const orderCard = document.createElement('div');
         orderCard.className = `order-card ${['FIN', 'REJ', 'CANC'].includes(order.status) ? 'inactive-order' : 'active-order'}`;
 
-        const orderTitle = document.createElement('h2');
+        const orderTitle = document.createElement('h3');
         orderTitle.textContent = `Order ID: ${order.id}`;
         orderCard.appendChild(orderTitle);
 
@@ -65,10 +76,14 @@ function displayOrders(orders) {
         dateDelivery.textContent = `Delivery Date: ${new Date(order.date_delivery).toLocaleString()}`;
         orderCard.appendChild(dateDelivery);
 
+        const totalPrice = document.createElement('p');
+        totalPrice.textContent = `Harga: ${order.total_price}`;
+        orderCard.appendChild(totalPrice);
+
         const itemsList = document.createElement('ul');
         order.order_items.forEach(item => {
             const itemElement = document.createElement('li');
-            itemElement.innerHTML = `<strong>${item.product_name}</strong> - Quantity: ${item.quantity}`;
+            itemElement.innerHTML = `${item.quantity}x <strong>${item.product_name}</strong>`;
             if (item.orderItemMessage) {
                 const message = document.createElement('p');
                 message.textContent = `Message: ${item.orderItemMessage}`;
@@ -106,7 +121,7 @@ function cancelOrder(orderId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({ status: 'CANC' })
     })
@@ -124,17 +139,3 @@ function cancelOrder(orderId) {
     });
 }
 
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}

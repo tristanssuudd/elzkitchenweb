@@ -1,16 +1,33 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
-    <title>{% block title %}My Site{% endblock %}</title>
+    <title>{% block title %}El'z Kitchen{% endblock %}</title>
 
 
     <link rel="stylesheet" href="{% static 'styles/basic_styles.css' %}">
 
+    {% if user_authenticated %}
+    <script>
+        
+        fetch('/manager/get_contact')
+        .then(response => response.json())
+        .then(data => {
+            if (data.kitchenContact) {
+                console.log("Kitchen Contact:", data.kitchenContact);
+                document.getElementById('kitchen-contact').href = `https://wa.me/${data.kitchenContact}`
+            } else {
+                console.error("Error:", data.error);
+            }
+        })
+        .catch(error => console.error("Fetch error:", error));
+    </script>
+    {% endif %}
+    
     <!-- Custom CSS Block -->
     {% block custom_css %}
     <!-- Other templates can add their own CSS files here -->
@@ -27,16 +44,17 @@
         <nav class="nav-links">
             <div class="general-links">
                 <a href="/">BERANDA</a>
-                <a href="/info">TENTANG</a>
+                <a href="/about">TENTANG</a>
                 
                 {% if is_manager %}
                     <a href="/manager">PESANAN</a>
                     <a href="/products/manager">PRODUK</a>
+                    <a href="/settings">Pengaturan</a>
                 {% else %}
 
                 {% endif %}
                 {% if user_authenticated %}
-                <a href="/">Kontak Bu Elz!</a>
+                <a href="/" id="kitchen-contact">Kontak Bu Elz!</a>
                 {% endif %}
             </div>
             

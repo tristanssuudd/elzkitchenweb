@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block header %}
+
+
+
+{% endblock %}
+{% block content %}
+
+
+<div class="container">
+    <h1>Pengaturan</h1>
+    <hr>
+    <div>
+        <p><b>Status website: </b></p>
+        <h1 id="kitchen-status-indicator">???</h1>
+        <button class="generic-ok-button" id="toggle-kitchen-status" onclick="onKitchenStatusSettingToggled()">Tutup toko</button>
+        <br>
+        <small><i>Dengan menutup toko, pelanggan tidak akan bisa masuk ke halaman checkout sehingga tidak bisa melakukan pemesanan. Namun, pemesanan yang aktif akan tetap berjalan dan tetap dapat dikelola.</i></small>
+        <br>
+    </div>
+    <div>
+
+
+    </div>
+    <div>
+
+        
+    </div>
+    
+</div>
+
+
+{% endblock %}
+{% block custom_js %}
+    <script src="{% static 'js/settings.js' %}"></script>
+{% endblock %}

@@ -416,6 +416,9 @@ p {
     align-items: "center";
     justify-content: space-between;
 }
+.order-card p {
+    
+}
 .order-card-actions {
     display:flex;
     flex-direction: column;

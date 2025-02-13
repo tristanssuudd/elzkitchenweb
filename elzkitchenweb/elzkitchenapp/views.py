@@ -1,12 +1,13 @@
 from django.shortcuts import render
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse, HttpResponseForbidden #for returning httpresponses duh
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseRedirect #for returning httpresponses duh
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
 from django.conf import settings
-from django.db.models import Case, When, IntegerField
+from django.db.models import Case, When, IntegerField, Q
+from django.db import transaction
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import Group
@@ -15,12 +16,29 @@ from django.contrib import messages
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.serializers import serialize
-from .models import Product,ProductCategory, Orders, OrderItem, OrderMessage, UserProfile, OrderHistory
+from .models import Product,ProductCategory, Orders, OrderItem, OrderMessage, UserProfile, OrderHistory, kitchenInfo
 from .forms import UserRegistrationForm, ReceiptUploadForm, UserProfileForm
 import json
 
+## Globals
+
+GLOBAL_SHOP_OPEN = None
+
 
 ### UTIL FUNCTIONS
+def initialize_kitchen_status():
+    global GLOBAL_SHOP_OPEN
+    refresh_kitchen_status()
+
+def refresh_kitchen_status():
+    global GLOBAL_SHOP_OPEN
+    print('kitchen status obtained in session')
+    kitchen_status = kitchenInfo.objects.first()
+    GLOBAL_SHOP_OPEN = kitchen_status.kitchenOpen if kitchen_status else False
+
+def isKitchenOpen():
+    global GLOBAL_SHOP_OPEN
+    return GLOBAL_SHOP_OPEN
 def get_standard_context(request):
     context = {
         'MEDIA_URL' : settings.MEDIA_URL,
@@ -66,11 +84,20 @@ def index(request):
                }
     context.update(get_standard_context(request))
     return render(request, 'index.html', context)
+
+def about(request):
+    context = {}
+    context.update(get_standard_context(request))
+    return render(request, 'tentang.html', context)
 @login_required
 def checkout(request):
+    if not isKitchenOpen():
+
+        return JsonResponse({"error": "Toko sedang tutup"}, status=403)
     if not request.user.is_authenticated:
          redirect('login')
     else:
+
         order_data = build_cart_dict(request.user)[0]
         cart = order_data['order_items']
         context = {'cart':cart,
@@ -101,71 +128,157 @@ def product_manager(request):
     context.update(get_standard_context(request))
     return render(request, 'product_manager.html', context)
 
+@login_required
+def history_viewer(request):
+    context = {}
+    context.update(get_standard_context(request))
+    return render(request, 'history.html', context)
 def whiteboard(request):
     context = {}
     context.update(get_standard_context(request))
     return render(request, 'whiteboard.html', context)
+@login_required
+@user_passes_test(is_manager)
+def kitchen_settings(request):
+    context = {}
+    context.update(get_standard_context(request))
+    return render(request, 'settings.html', context)
+### Endpoints
 
-### DEBUG
+def get_kitchen_status(request):
+    try:
+        global GLOBAL_SHOP_OPEN
+        if GLOBAL_SHOP_OPEN:
+            print(GLOBAL_SHOP_OPEN)
+            return JsonResponse({'kitchen_status' : GLOBAL_SHOP_OPEN}, status=200)
+        else:
+            refresh_kitchen_status()
+            return JsonResponse({'kitchen_status' : GLOBAL_SHOP_OPEN}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+@login_required
+@user_passes_test(is_manager)
+def toggle_kitchen_status(request):
+    if request.method == "POST":
+        kitchen_info, created = kitchenInfo.objects.get_or_create(id=1)  # Adjust if ID is not guaranteed
+        kitchen_info.kitchenOpen = not kitchen_info.kitchenOpen
+
+        toRead = kitchen_info.kitchenOpen
+        kitchen_info.save()
+
+
+        refresh_kitchen_status()
+        #debug<
+        print("Kitchen status updated. Status: ")
+        print(toRead)
+        #debug>
+
+        return JsonResponse({
+            "success": True,
+            "kitchen_status": kitchen_info.kitchenOpen
+        })
+
+    # If not POST, return error
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+
+@login_required
+def get_kitchen_contact(request):
+    try:
+        kitchen_info = kitchenInfo.objects.first()
+        if kitchen_info and kitchen_info.kitchenContact:
+            return JsonResponse({'kitchenContact': kitchen_info.kitchenContact}, status=200)
+        else:
+            return JsonResponse({'error': 'Kitchen contact not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
 def get_history(request):
     if request.method == 'GET':
-        if is_manager(request.user):
-            try:
-                # Query all OrderHistory entries
-                order_history = OrderHistory.objects.all()
+        try:
+            # Determine if the user is a manager
+            is_user_manager = is_manager(request.user)
 
-                # Manually serialize data
-                data = [
-                    {
-                        "order_id": entry.order_id,
-                        "total_price": entry.total_price,
-                        "items": entry.items,
-                        "customer": entry.customer,
-                        "date_completed": entry.date_completed.strftime('%Y-%m-%d %H:%M:%S'),
-                        "status": entry.status,
-                    }
-                    for entry in order_history
-                ]
-                print(data)
-                # Return as a JSON response
-                return JsonResponse(data, safe=False, status=200)
+            # Fetch all order history entries (managers get all, others filtered by user)
+            order_history = OrderHistory.objects.all() if is_user_manager else OrderHistory.objects.filter(customer=request.user)
 
-            except Exception as e:
-                return JsonResponse({"error": str(e)}, status=500)
-        else:
-            try:
-                # Query all OrderHistory entries
-                order_history = OrderHistory.objects.all(user=request.user)
+            # Apply filters
+            status = request.GET.get('status')
+            customer = request.GET.get('customer')
+            print(status)
 
-                # Manually serialize data
-                data = [
-                    {
-                        "order_id": entry.order_id,
-                        "total_price": entry.total_price,
-                        "items": entry.items,
-                        "customer": entry.customer,
-                        "date_completed": entry.date_completed.strftime('%Y-%m-%d %H:%M:%S'),
-                        "status": entry.status,
-                    }
-                    for entry in order_history
-                ]
-                print(data)
-                # Return as a JSON response
-                return JsonResponse(data, safe=False, status=200)
+            if status:
+                order_history = order_history.filter(status=status)
+            if customer:
+                order_history = order_history.filter(customer__username__icontains=customer)
 
-            except Exception as e:
-                return JsonResponse({"error": str(e)}, status=500)
+            # Apply sorting
+            sort_by = request.GET.get('sort_by', '-date_completed')  # Default sorting by most recent
+
+            order_history = order_history.order_by(sort_by)
+
+            # Pagination
+            page = int(request.GET.get('page', 1))
+
+            items_per_page = int(request.GET.get('items_per_page', 10))
+            paginator = Paginator(order_history, items_per_page)
+            paginated_order_history = paginator.get_page(page)
+
+            # Serialize data
+            data = [
+                {
+                    "order_id": entry.order_id,
+                    "total_price": entry.total_price,
+                    "items": entry.items,
+                    "customer": entry.customer if entry.customer else "Unknown",
+                    "date_completed": entry.date_completed.strftime('%Y-%m-%d %H:%M:%S') if entry.date_completed else None,
+                    "status": entry.status,
+                }
+                for entry in paginated_order_history
+            ]
+
+            # Return response with pagination metadata
+            response = {
+                "page": page,
+                "items_per_page": items_per_page,
+                "total_pages": paginator.num_pages,
+                "total_items": paginator.count,
+                "results": data,
+            }
+
+            return JsonResponse(response, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
 
 @login_required
 def get_cart(request):
     order_data = build_cart_dict(request.user)
     return JsonResponse(order_data, safe=False)
 
-@login_required
-def add_to_cart(request):
-    if request.method == "POST":
+def custom_login_required(view_func):
+    def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return JsonResponse({'error': 'User not authenticated'}, status=401)
+            print("Hello")
+            return HttpResponseRedirect('/login/')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+
+def add_to_cart(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'User not authenticated', 'redirect_url': '/login/'}, status=401)
+
+    if request.method == "POST":
+
 
         data = json.loads(request.body)
         product_id = data.get('product_id')
@@ -178,7 +291,6 @@ def add_to_cart(request):
         defaults={'date_ordered': timezone.now(), 'date_delivery': timezone.now() + timezone.timedelta(days=3), 'status_msg': ''}
         )
         try:
-
             product = Product.objects.get(id=product_id)
         except Product.DoesNotExist:
             return JsonResponse({'error': 'Product does not exist'}, status=404)
@@ -188,10 +300,12 @@ def add_to_cart(request):
             existingOrderItem.quantity = amount
             existingOrderItem.save()
         else:
-            new_order_item = OrderItem.objects.create(
+            OrderItem.objects.create(
                 order=shopping_cart,
                 product=product,
                 quantity=amount,
+                product_name = product.name,
+                product_price = product.price,
                 orderItemMessage=msg
             )
         return JsonResponse({'success': True}, status=200)
@@ -252,9 +366,9 @@ def generate_order_items_summary(order_id):
 
     item_descriptions = []
     for item in order_items:
-        product_name = item.product.name
+        product_name = item.product_name
         quantity = item.quantity
-        price = item.product.price
+        price = item.product_price
         item_descriptions.append(f"{quantity} x {product_name} at price of {price} each")
 
     return ", ".join(item_descriptions)
@@ -274,6 +388,7 @@ def update_order(request, order_id):
                 else:
                     return JsonResponse({'success': False, 'error': f'Your group cannot edit this value.'}, status=403)
             if 'status' in data:
+
                 allowed_status_by_group = {
                 'customer': [Orders.CANCELLED, Orders.ORDERED],
                 'manager': [Orders.APPROVED, Orders.REJECTED, Orders.PAID, Orders.FINISHED]
@@ -286,6 +401,7 @@ def update_order(request, order_id):
                         break
                 else:
                     return JsonResponse({'success': False, 'error': 'You do not have permission to update this status'}, status=403)
+
                 order.status = data['status']
                 if data['status'] in [Orders.REJECTED, Orders.FINISHED, Orders.CANCELLED]:
                                     #write to order history
@@ -296,7 +412,9 @@ def update_order(request, order_id):
                     }
 
                     # Get the FinalStatus
-                    FinalStatus = status_mapping.get(data['status'], "Unknown")  # Default to "Unknown" if no match is found
+                    FinalStatus = status_mapping.get(data['status'])  # Default to "Unknown" if no match is found
+
+                    checkAndDeleteProducts(order)
 
                     OrderHistory.objects.create(
                         order_id=order.id,
@@ -314,7 +432,20 @@ def update_order(request, order_id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-
+def checkAndDeleteProducts(order):
+    order_items = order.orderitem_set.all()
+    for order_item in order_items:
+        product = order_item.product
+        if not product:
+            print("Product to delete not found.")
+            return
+        if product.isDeleted:
+            other_order_items = OrderItem.objects.filter(
+                product=product
+            ).exclude(order=order)
+            if not other_order_items.exists():
+                product.delete()
+                print(f"Product {product.name} (ID: {product.id}) has been fully deleted from the system.")
 @login_required
 def upload_receipt(request, order_id):
     order = Orders.objects.get(id=order_id, customer=request.user)  # Ensure user owns the order
@@ -413,6 +544,9 @@ def get_products(request):
 
     # Filter products by category if provided
     products = Product.objects.all()
+    products = products.filter(isDeleted=False)
+    if not is_manager(request.user):
+        products = products.filter(isAvailable=True)
     if category:
         products = products.filter(category__category=category)
 
@@ -498,26 +632,45 @@ def update_product(request, product_id):
         name = request.POST.get('name')
         print('newname= '+name)
         category = request.POST.get('category') #id form
-        isAvailable = request.POST.get('isAvailable') #boolean
+        isAvailable = request.POST.get('isAvailable', False) #boolean
         price = request.POST.get('price')
         productImage = request.FILES.get('image')
         NAmessage = request.POST.get('NAMessage')
 
         product = get_object_or_404(Product, id=product_id)
+        with transaction.atomic():
+            if name:
+                product.name = name
+            if category:
+                product.category = ProductCategory.objects.get(id=category)
+            if isAvailable:
+                print("#DEBUG: Availability status change detected.")
+                order_items_to_delete = OrderItem.objects.filter(product=product, order__status__in=[Orders.ORDERED, Orders.NOT_ORDERED])
+                affected_orders = set(order_items_to_delete.values_list('order_id', flat=True))
+                order_items_to_delete.delete()
+                print(f'#DEBUG: OrderItems with Product {product.name} has been deleted.')
 
-        if name:
-            product.name = name
-        if category:
-            product.category = ProductCategory.objects.get(id=category)
-        if isAvailable:
-            product.isAvailable = isAvailable
-            product.NAmessage = NAmessage
-        if price:
-            product.price = price
-        if productImage:
-            product.product_image = productImage
-        product.save()
-        return JsonResponse({'success': 'Product updated', 'id': product.id}, status=201)
+                #TO_IMPLEMENT: Notify users of availability change
+
+                orders_to_check = Orders.objects.filter(id__in=affected_orders, status=Orders.ORDERED)
+                for order in orders_to_check:
+                    if not order.orderitem_set.exists():  # If no OrderItems left
+                        print(f'#DEBUG: Order ID {order.id} has been deleted as it has no remaining OrderItems.')
+                        order.delete()
+                product.isAvailable = isAvailable
+                product.NAmessage = NAmessage
+            if price:
+                product.price = price
+                order_items_to_modify = product.orderitem_set.filter(order__status__in=[Orders.NOT_ORDERED, Orders.ORDERED])
+                for order_item in order_items_to_modify:
+                    order_item.product_price = price
+                    order_item.save()
+                print(f'#DEBUG: Updated price for {order_items_to_modify.count()} order items.')
+                #TO_IMPLEMENT: Notification for price change
+            if productImage:
+                product.product_image = productImage
+            product.save()
+            return JsonResponse({'success': 'Product updated', 'id': product.id}, status=201)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
@@ -527,10 +680,40 @@ def delete_product(request, product_id):
     if request.method == 'DELETE':
         try:
             product = Product.objects.get(id=product_id)
-            product.delete()
-            return JsonResponse({'success': f'Product with ID {product_id} has been deleted.'}, status=200)
+
+            with transaction.atomic():
+                product.isDeleted = True
+                product.save()
+
+                #Delete only orderItem with order status NORD or ORD then check if corresponding order is empty, delete if empty
+                order_items_to_delete = OrderItem.objects.filter(product=product, order__status__in=[Orders.ORDERED, Orders.NOT_ORDERED])
+                if order_items_to_delete.exists():
+
+                    affected_orders = set(order_items_to_delete.values_list('order_id', flat=True))
+                    order_items_to_delete.delete()
+                    print(f'#DEBUG: OrderItems with Product {product.name} has been deleted.')
+
+                    orders_to_check = Orders.objects.filter(id__in=affected_orders, status=Orders.ORDERED)
+                    for order in orders_to_check:
+                        if not order.orderitem_set.exists():  # If no OrderItems left
+                            print(f'#DEBUG: Order ID {order.id} has been deleted as it has no remaining OrderItems.')
+                            order.delete()
+
+
+                order_items_to_delete = product.orderitem_set.all()
+                if order_items_to_delete.exists():
+                    return JsonResponse({'success': f'Product {product.name} has been marked for deletion but still present in active orders.'}, status=200)
+                else:
+                    product.delete()
+                    return JsonResponse({'success': f'Product {product.name} has been is not present in any orders and have been fully deleted.'}, status=200)
+
+            #TO_IMPLEMENT: Notifiy corresponding users
+
+
         except Product.DoesNotExist:
             return JsonResponse({'error': f'Product with ID {product_id} not found.'}, status=404)
+        except Exception as e:
+             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
@@ -686,7 +869,8 @@ def get_orders(request):
             for item in order_items:
                 items_data.append({
                     'product_id': item.product.id,
-                    'product_name': item.product.name,
+                    'product_name': item.product_name,
+                    'product_price': item.product_price,
                     'quantity': item.quantity,
                     'orderItemMessage': item.orderItemMessage,
                 })
@@ -714,7 +898,7 @@ def get_orders(request):
         return JsonResponse(response_data)
 def get_order_total(order):
     # Calculate the total price by summing the price of all items in the order
-    total_price = sum(item.product.price * item.quantity for item in order.orderitem_set.all())
+    total_price = sum(item.product_price * item.quantity for item in order.orderitem_set.all())
     return total_price
 def get_customer_phone(order):
     try:
@@ -750,6 +934,10 @@ def get_user_phone_number(request, order_id):
         "success": False,
         "message": "Invalid request method."
     }, status=405)
+
+
+
+
 class CustomLoginView(auth_views.LoginView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -788,3 +976,4 @@ def register(request):
     return render(request, 'registration/register.html', context)
 
 #debug customer pass: watershed
+#debug superuser uname/pass: 'devadmin'/'watershed'
