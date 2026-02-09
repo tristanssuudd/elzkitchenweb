@@ -975,5 +975,4 @@ def register(request):
     context.update(get_standard_context(request))
     return render(request, 'registration/register.html', context)
 
-#debug customer pass: watershed
-#debug superuser uname/pass: 'devadmin'/'watershed'
+

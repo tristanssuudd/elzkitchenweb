@@ -1,0 +1,9 @@
+db.sqlite3
+
+elzkitchenenv
+elzkitchenweb/media/
+toupload/
+.idea
+__pycache__/
+*.pyc
+*.py[cod]
