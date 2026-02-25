@@ -4,6 +4,10 @@
 An Order Management System for a small food business made with Python Django Framework, sqlite, HTML and CSS. Users can register, login, and place and track product orders. Admins can manage available products, orders. This project was made as a dummy project for my final college thesis.
 
 ## Preview
+<img src="/preview/1.png" alt="homepage" width="400"/> <img src="/preview/2.png" alt="homepage" width="400"/>
+
+<img src="/preview/3.png" alt="homepage" width="400"/>
+
 
 Setup
 ---
